@@ -4,7 +4,8 @@ class play extends Phaser.Scene{
     }
     preload(){
         this.load.image('rocket','./assets/rocket.png');
-        this.load.image('spaceship','./assets/spaceship.png');
+        //this.load.image('spaceship','./assets/spaceship.png');
+        this.load.image('spaceship','./assets/pikachuuu.png');
         this.load.image('starfield','./assets/starfield.png');
         this.load.spritesheet('explosion','./assets/explosion.png',{
             frameWidth: 64,
@@ -15,7 +16,8 @@ class play extends Phaser.Scene{
     }
 
     create(){
-        //place starfield
+        //place starfield 
+        game.music.play(); 
         this.starfield = this.add.tileSprite(0,0,game.config.width,game.config.height,'starfield').setOrigin(0.0);
 
         //UI background
@@ -23,9 +25,10 @@ class play extends Phaser.Scene{
         // white borders
         this.add.rectangle(0, 0, game.config.width, borderUISize, 0xFFFFFF).setOrigin(0, 0);
         this.add.rectangle(0, game.config.height - borderUISize, game.config.width, borderUISize, 0xFFFFFF).setOrigin(0, 0);
-        this.add.rectangle(0, 0, borderUISize, game.config.height, 0xFFFFFF).setOrigin(0, 0);
-        this.add.rectangle(game.config.width - borderUISize, 0, borderUISize, game.config.height, 0xFFFFFF).setOrigin(0, 0);
-                
+        //this.add.rectangle(0, 0, borderUISize, game.config.height, 0xFFFFFF).setOrigin(0, 0);
+        //this.add.rectangle(game.config.width - borderUISize, 0, borderUISize, game.config.height, 0xFFFFFF).setOrigin(0, 0);
+        
+        
         //add rocket p1        
         this.p1Rocket = new Rocket(this, game.config.width/2, game.config.height - borderUISize - borderPadding, 'rocket').setOrigin(0.5, 0);
     
@@ -38,9 +41,7 @@ class play extends Phaser.Scene{
         keyR = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
         keyLEFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
         keyRIGHT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
-        if (this.gameOver && Phaser.Input.Keyboard.JustDown(keyLEFT)) {
-            this.scene.start("menuScene");
-        }
+       
         //animation
         this.anims.create({
             key:'explode',
@@ -51,6 +52,7 @@ class play extends Phaser.Scene{
             }),
             frameRate: 30
         });
+
         // initialize score
         this.p1Score = 0;
           // display score
@@ -67,9 +69,19 @@ class play extends Phaser.Scene{
             fixedWidth: 100
         }
         this.scoreLeft = this.add.text(borderUISize + borderPadding, borderUISize + borderPadding*2, this.p1Score, scoreConfig);
-    
+        
+        
+        game.settings.currentTimer = game.settings.gameTimer;
+        game.settings.timeLeft = this.add.text(490, borderUISize + borderPadding*2, game.settings.currentTimer/1000, scoreConfig).setOrigin(0.0);
+
         // GAME OVER flag
         this.gameOver = false;
+
+        this.timer = this.time.addEvent({
+            delay: 100,                // ms
+            callback: this.reduceTime,
+            loop: true
+        });
 
         // 60-second play clock
         scoreConfig.fixedWidth = 0;
@@ -77,7 +89,9 @@ class play extends Phaser.Scene{
             this.add.text(game.config.width/2, game.config.height/2, 'GAME OVER', scoreConfig).setOrigin(0.5);
             this.add.text(game.config.width/2, game.config.height/2 + 64, 'Press (R) to Restart or ← for Menu', scoreConfig).setOrigin(0.5);
             this.gameOver = true;
+            this.timer.paused = true;
         }, null, this);
+
     }
 
     update(){
@@ -85,8 +99,12 @@ class play extends Phaser.Scene{
         if (this.gameOver && Phaser.Input.Keyboard.JustDown(keyR)) {
             this.scene.restart();
         }
+        if (this.gameOver && Phaser.Input.Keyboard.JustDown(keyLEFT)) {
+            game.music.pause();
+            this.scene.start("newmenuScene");
+        }
         this.starfield.tilePositionX -= starSpeed;
-
+        
         //
         if (!this.gameOver) {               
             this.p1Rocket.update();         // update rocket sprite
@@ -97,19 +115,25 @@ class play extends Phaser.Scene{
         if(this.checkCollision(this.p1Rocket, this.ship03)){
             this.p1Rocket.reset();
             this.shipExplode(this.ship03);
+            //game.settings.currentTimer += 1000;
         }
         if(this.checkCollision(this.p1Rocket, this.ship02)){
             this.p1Rocket.reset();
             this.shipExplode(this.ship02);
+            //game.settings.currentTimer += 1000;
         }
         if(this.checkCollision(this.p1Rocket, this.ship01)){
             this.p1Rocket.reset();
             this.shipExplode(this.ship01);
+            //game.settings.currentTimer += 1000; //+1s when you catch one pikachu
         }
     }
 
     checkCollision(rocket, ship){
-        if(rocket.x<ship.x +ship.width && rocket.x +rocket.width >ship.x && rocket.y< ship.y +ship.height && rocket.height +rocket.y>ship.y){
+        if (rocket.x<ship.x +ship.width &&
+            rocket.x +rocket.width >ship.x &&
+            rocket.y< ship.y +ship.height &&
+            rocket.height +rocket.y>ship.y){
             return true;
         } else{
             return false;
@@ -130,6 +154,11 @@ class play extends Phaser.Scene{
         this.p1Score += ship.points;
         this.scoreLeft.text = this.p1Score;     
         this.sound.play('sfx_explosion');  
+    }
+
+    reduceTime() {
+        game.settings.currentTimer -= 100;
+        game.settings.timeLeft.text = game.settings.currentTimer /1000;
     }
       
 }
